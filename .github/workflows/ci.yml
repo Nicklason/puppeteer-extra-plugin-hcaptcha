@@ -15,6 +15,10 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
+        registry-url: https://npm.pkg.github.com/
+        scope: '@nicklason'
     - run: npm ci
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.READ_PACKAGES_PAT }}
     - run: npm run build --if-present
     - run: npm test
