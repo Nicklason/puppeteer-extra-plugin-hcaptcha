@@ -61,11 +61,22 @@ class PuppeteerExtraPluginHcaptcha extends PuppeteerExtraPlugin {
         page.findHcaptchas = async (): Promise<types.CaptchaInfo[]> =>
             this.findHcaptchas(page);
 
+        page.clickOnHcaptchas = async (
+            captchas: types.CaptchaInfo[]
+        ): Promise<void> => this.clickOnHcaptchas(page, captchas);
+
         page.getHcaptchaSolutions = async (
             captchas: types.CaptchaInfo[],
+            proxyUrl: string,
+            proxyType: 'HTTP' | 'HTTPS' | 'SOCKS4' | 'SOCKS5',
             provider?: types.SolutionProvider
         ): Promise<types.CaptchaSolution[]> => {
-            return this.getHcaptchaSolutions(captchas, provider);
+            return this.getHcaptchaSolutions(
+                captchas,
+                proxyUrl,
+                proxyType,
+                provider
+            );
         };
 
         page.enterHcaptchaSolutions = async (
@@ -74,8 +85,11 @@ class PuppeteerExtraPluginHcaptcha extends PuppeteerExtraPlugin {
             return this.enterHcaptchaSolutions(page, solutions);
         };
 
-        page.solveHcaptchas = async (): Promise<types.SolveRecaptchasResult> =>
-            this.solveHcaptchas(page);
+        page.solveHcaptchas = async (
+            proxyUrl: string,
+            proxyType: 'HTTP' | 'HTTPS' | 'SOCKS4' | 'SOCKS5'
+        ): Promise<types.SolveRecaptchasResult> =>
+            this.solveHcaptchas(page, proxyUrl, proxyType);
     }
 
     private async findHcaptchas(
@@ -106,8 +120,27 @@ class PuppeteerExtraPluginHcaptcha extends PuppeteerExtraPlugin {
         return response;
     }
 
+    private async clickOnHcaptchas(
+        page: Page | Frame,
+        captchas: types.CaptchaInfo[]
+    ): Promise<void> {
+        await Promise.all(
+            captchas.map((info) =>
+                page
+                    .$(
+                        `iframe[src^='https://assets.hcaptcha.com/captcha/v1'][data-hcaptcha-widget-id='${info.id}']`
+                    )
+                    .then((el) => {
+                        return el?.click({ delay: 200 });
+                    })
+            )
+        );
+    }
+
     private async solveHcaptchas(
-        page: Page | Frame
+        page: Page | Frame,
+        proxyUrl: string,
+        proxyType: 'HTTP' | 'HTTPS' | 'SOCKS4' | 'SOCKS5'
     ): Promise<types.SolveRecaptchasResult> {
         const captchas = await this.findHcaptchas(page);
 
@@ -115,7 +148,13 @@ class PuppeteerExtraPluginHcaptcha extends PuppeteerExtraPlugin {
         let solved: types.CaptchaSolved[] = [];
 
         if (captchas.length !== 0) {
-            solutions = await this.getHcaptchaSolutions(captchas);
+            await this.clickOnHcaptchas(page, captchas);
+
+            solutions = await this.getHcaptchaSolutions(
+                captchas,
+                proxyUrl,
+                proxyType
+            );
 
             solved = await this.enterHcaptchaSolutions(page, solutions);
         }
@@ -142,6 +181,8 @@ class PuppeteerExtraPluginHcaptcha extends PuppeteerExtraPlugin {
 
     private async getHcaptchaSolutions(
         captchas: types.CaptchaInfo[],
+        proxyUrl: string,
+        proxyType: 'HTTP' | 'HTTPS' | 'SOCKS4' | 'SOCKS5',
         provider?: types.SolutionProvider
     ): Promise<types.CaptchaSolution[]> {
         if (provider === undefined) {
@@ -172,7 +213,13 @@ class PuppeteerExtraPluginHcaptcha extends PuppeteerExtraPlugin {
             fn = builtinProvider.fn;
         }
 
-        const response = await fn.call(this, captchas, provider.apiKey);
+        const response = await fn.call(
+            this,
+            captchas,
+            proxyUrl,
+            proxyType,
+            provider.apiKey
+        );
 
         return response;
     }

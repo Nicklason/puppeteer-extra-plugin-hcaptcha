@@ -5,9 +5,16 @@ export type PluginPageAdditions = {
     /** Attempt to find all hCaptchas on this page */
     findHcaptchas: () => Promise<CaptchaInfo[]>;
 
+    /**
+     * Click on captchas
+     */
+    clickOnHcaptchas: (captchas: CaptchaInfo[]) => Promise<void>;
+
     /* Get solutions for captchas */
     getHcaptchaSolutions: (
         captchas: CaptchaInfo[],
+        proxyUrl: string,
+        proxyType: 'HTTP' | 'HTTPS' | 'SOCKS4' | 'SOCKS5',
         provider?: SolutionProvider
     ) => Promise<CaptchaSolution[]>;
 
@@ -17,7 +24,10 @@ export type PluginPageAdditions = {
     ) => Promise<CaptchaSolved[]>;
 
     /* Find and solve captchas on page */
-    solveHcaptchas: () => Promise<SolveRecaptchasResult>;
+    solveHcaptchas: (
+        proxyUrl: string,
+        proxyType: 'HTTP' | 'HTTPS' | 'SOCKS4' | 'SOCKS5'
+    ) => Promise<SolveRecaptchasResult>;
 };
 
 export interface CaptchaInfo {
@@ -56,6 +66,7 @@ export interface ContentScriptOpts {
 }
 
 export interface ContentScriptData {
+    captchas?: CaptchaInfo[];
     solutions?: CaptchaSolution[];
 }
 
@@ -64,6 +75,8 @@ export interface SolutionProvider {
     apiKey?: string;
     fn?: (
         captchas: CaptchaInfo[],
+        proxyUrl: string,
+        proxyType: 'HTTP' | 'HTTPS' | 'SOCKS4' | 'SOCKS5',
         apiKey?: string
     ) => Promise<CaptchaSolution[]>;
 }

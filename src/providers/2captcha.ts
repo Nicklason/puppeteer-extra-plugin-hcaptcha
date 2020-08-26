@@ -8,6 +8,8 @@ const solver = new TwoCaptcha();
 
 async function getSolution(
     captcha: types.CaptchaInfo,
+    proxyUrl: string,
+    proxyType: 'HTTP' | 'HTTPS' | 'SOCKS4' | 'SOCKS5',
     apiKey?: string
 ): Promise<types.CaptchaSolution> {
     if (apiKey) {
@@ -18,7 +20,12 @@ async function getSolution(
     const start = new Date();
 
     // Request captcha to be solved
-    const id = await solver.solveHcaptcha(captcha.sitekey, captcha.url);
+    const id = await solver.solveHcaptcha(
+        captcha.sitekey,
+        captcha.url,
+        proxyUrl,
+        proxyType
+    );
 
     // Get solution for captcha
     const solution = await solver.pollSolution(id, 5000, 15000);
@@ -41,11 +48,15 @@ async function getSolution(
 
 export async function getSolutions(
     captchas: types.CaptchaInfo[],
+    proxyUrl: string,
+    proxyType: 'HTTP' | 'HTTPS' | 'SOCKS4' | 'SOCKS5',
     apiKey?: string
 ): Promise<types.CaptchaSolution[]> {
     // Get solution for all captchas
     const solutions = await Promise.all(
-        captchas.map((captcha) => getSolution(captcha, apiKey))
+        captchas.map((captcha) =>
+            getSolution(captcha, proxyUrl, proxyType, apiKey)
+        )
     );
 
     return solutions;
